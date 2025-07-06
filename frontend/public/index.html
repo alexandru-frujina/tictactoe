@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tic Tac Toe</title>
+</head>
+<body>
+    <h1>Hello World!</h1>
+    <div id="message">Loading...</div>
+
+    <script>
+        async function fetchMessage() {
+            try {
+                const response = await fetch('http://localhost:5000/hello');
+                if (!response.ok) throw new Error('Network response was not OK!');
+                const data = await response.json();
+                document.getElementById('message').textContent = data.message;
+            } catch (error) {
+                document.getElementById('message').textContent = 'Error fetching message';
+                console.error('Fetch error: ', error);
+            }
+        }
+
+        fetchMessage();
+    </script>
+</body>
