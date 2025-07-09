@@ -6,6 +6,7 @@
 <body>
     <h1>Hello World!</h1>
     <div id="message">Loading...</div>
+    <div id="users">Loading users...</div>
 
     <script>
         async function fetchMessage() {
@@ -20,6 +21,21 @@
             }
         }
 
+        async function fetchUsers() {
+            try {
+                const response = await fetch('http://localhost:5000/users');
+                if (!response.ok) throw new Error('Network response was not OK!');
+                const users = await response.json();
+                const content = users.map(user => `<p>${user.name}</p>`).join('');
+                document.getElementById('users').innerHTML = content;
+            }
+            catch (error) {
+                document.getElementById('users').textContent = 'Error fetching message';
+                console.error('Fetch error: ', error);
+            }
+        }
+
         fetchMessage();
+        fetchUsers();
     </script>
 </body>
