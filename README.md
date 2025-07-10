@@ -55,6 +55,8 @@ dotnet ef database update
 docker build -t tictactoe-backend ./backend
 
 docker run --rm -d -p 5000:80 --name tictactoe-backend-container tictactoe-backend
+
+docker run --rm -p 5000:8080 --name tictactoe-backend-container --network tictactoeproj_pg-network tictactoe-backend
 ```
 
 

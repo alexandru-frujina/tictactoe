@@ -11,7 +11,7 @@
     <script>
         async function fetchMessage() {
             try {
-                const response = await fetch('http://localhost:5000/hello');
+                const response = await fetch('/api/hello');
                 if (!response.ok) throw new Error('Network response was not OK!');
                 const data = await response.json();
                 document.getElementById('message').textContent = data.message;
@@ -23,7 +23,7 @@
 
         async function fetchUsers() {
             try {
-                const response = await fetch('http://localhost:5000/users');
+                const response = await fetch('/api/users');
                 if (!response.ok) throw new Error('Network response was not OK!');
                 const users = await response.json();
                 const content = users.map(user => `<p>${user.name}</p>`).join('');
