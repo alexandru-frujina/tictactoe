@@ -45,6 +45,7 @@ dotnet add package Npgsql.EntityFrameworkCore.PostgreSQL
 ```
 
 * Run to initialize the database
+
 ```console
 dotnet add package Microsoft.EntityFrameworkCore.Design
 dotnet ef migrations add InitialCreate
@@ -58,11 +59,6 @@ docker run --rm -d -p 5000:80 --name tictactoe-backend-container tictactoe-backe
 
 docker run --rm -p 5000:8080 --name tictactoe-backend-container --network tictactoeproj_pg-network tictactoe-backend
 ```
-
-
-
-
-
 
 #### Configure Postgres
 
@@ -85,4 +81,12 @@ docker run --rm --name my-postgres --network pg-network -e POSTGRES_USER=user -e
 docker run --rm --network pg-network -p 8081:80 -e PGADMIN_DEFAULT_EMAIL=admin@example.com -e PGADMIN_DEFAULT_PASSWORD=admin dpage/pgadmin4
 ```
 
+## Debugging:
 
+```console
+docker-compose up
+
+docker run --rm --name tictactoe-backend-container --network tictactoeproj_pg-network tictactoe-backend
+```
+
+Attach to the backend container
