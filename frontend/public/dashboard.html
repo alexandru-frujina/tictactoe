@@ -10,9 +10,16 @@
   <div class="container">
     <h2 id="welcomeMessage">Loading...</h2>
     <button id="logoutBtn">Logout</button>
+
+    <h2>Connected Users</h2>
+
+    <ul id="userList"></ul>
+
+    <div id="selectedUser">Click on a name to select a user.</div>
   </div>
 
   <script>
+    let userId = null
     const token = localStorage.getItem('jwtToken');
     if (!token) {
       location.href = 'index.html';
@@ -29,16 +36,85 @@
     })
     .then(data => {
       document.getElementById('welcomeMessage').textContent = `Hello, ${data.username}`;
+      userId = data.userId;
     })
     .catch(() => {
       localStorage.removeItem('jwtToken');
       location.href = 'index.html';
     });
 
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      localStorage.removeItem('jwtToken');
-      location.href = 'index.html';
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      const token = localStorage.getItem('jwtToken');
+
+      if (!token) {
+        // Token missing, just redirect
+        location.href = 'index.html';
+        return;
+      }
+
+      try {
+        const response = await fetch('/api/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        // Regardless of success, remove token and redirect
+        localStorage.removeItem('jwtToken');
+        location.href = 'index.html';
+      } catch (error) {
+        console.error('Logout request failed:', error);
+        localStorage.removeItem('jwtToken');
+        location.href = 'index.html';
+      }
     });
+
+    const userListItems = document.querySelectorAll('#userList li');
+    const selectedUser = document.getElementById('selectedUser');
+
+    userListItems.forEach((item) => {
+      item.addEventListener('click', () => {
+        selectedUser.textContent = `You selected: ${item.textContent}`;
+      });
+    });
+
+
+    async function loadUsers() {
+      try {
+        const response = await fetch('/api/connected-users', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch users');
+
+        const users = await response.json();
+        const userList = document.getElementById('userList');
+        userList.innerHTML = '';
+
+        users.forEach(user => {
+          if (user.id != userId) {
+            const li = document.createElement('li');
+            li.textContent = user.username;
+            li.dataset.userId = user.id;
+
+            li.addEventListener('click', () => {
+              document.getElementById('selectedUser').textContent =
+                `You selected: ${user.username}`;
+            });
+
+            userList.appendChild(li);
+          }
+        });
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('userList').innerHTML = '<li>Error loading users</li>';
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', loadUsers);
   </script>
 </body>
 </html>

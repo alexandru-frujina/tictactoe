@@ -69,7 +69,10 @@ app.MapPost("/signup", async (SignupDto dto, AppDbContext db) =>
     db.Users.Add(user);
     await db.SaveChangesAsync();
 
-    var token = GenerateJwtToken(user); // Your JWT method
+    var token = GenerateJwtToken(user);
+
+    user.Connected = true;
+    await db.SaveChangesAsync();
 
     return Results.Ok(new { token });
 });
@@ -82,17 +85,51 @@ app.MapPost("/login", async (LoginDto dto, AppDbContext db) =>
 
     var token = GenerateJwtToken(user);
 
+    user.Connected = true;
+    await db.SaveChangesAsync();
+
     return Results.Ok(new { token });
 });
+
+app.MapPost("/logout", [Authorize] async (HttpContext context, AppDbContext db) =>
+{
+    var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+    if (userId != null)
+    {
+        var user = await db.Users.FindAsync(Int32.Parse(userId));
+        if (user != null)
+        {
+            user.Connected = false;
+            await db.SaveChangesAsync();
+        }
+    }
+
+    return Results.Ok(new { message = "Logged out" });
+});
+
 
 app.MapGet("/me", [Authorize] (HttpContext context) =>
 {
     var username = context.User.Identity?.Name;
+    var userId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-    if (string.IsNullOrEmpty(username))
+    if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(userId))
         return Results.Unauthorized();
 
-    return Results.Ok(new { username });
+    return Results.Ok(new { username, userId });
+});
+
+app.MapGet("/connected-users", [Authorize] async (HttpContext context, AppDbContext db) =>
+{
+    var currentUserId = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+    var currentId = int.TryParse(currentUserId, out var id) ? id : -1;
+
+    var connectedUsers = await db.Users
+        .Where(u => u.Connected && u.Id != currentId)
+        .Select(u => new { u.Id, u.Username })
+        .ToListAsync();
+    return Results.Ok(connectedUsers);
 });
 
 string GenerateJwtToken(User user)
