@@ -1,41 +1,109 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Tic Tac Toe</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Signup & Login</title>
+<link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-    <h1>Hello World!</h1>
-    <div id="message">Loading...</div>
-    <div id="users">Loading users...</div>
 
-    <script>
-        async function fetchMessage() {
-            try {
-                const response = await fetch('/api/hello');
-                if (!response.ok) throw new Error('Network response was not OK!');
-                const data = await response.json();
-                document.getElementById('message').textContent = data.message;
-            } catch (error) {
-                document.getElementById('message').textContent = 'Error fetching message';
-                console.error('Fetch error: ', error);
-            }
-        }
+<div class="container">
+  <h2 id="formTitle">Login</h2>
+  
+  <form id="authForm" autocomplete="off">
+    <input type="text" id="authUsername" placeholder="Username" required />
+    <input type="password" id="authPassword" placeholder="Password" required />
+    <button type="submit" id="submitBtn">Login</button>
+  </form>
 
-        async function fetchUsers() {
-            try {
-                const response = await fetch('/api/users');
-                if (!response.ok) throw new Error('Network response was not OK!');
-                const users = await response.json();
-                const content = users.map(user => `<p>${user.name}</p>`).join('');
-                document.getElementById('users').innerHTML = content;
-            }
-            catch (error) {
-                document.getElementById('users').textContent = 'Error fetching message';
-                console.error('Fetch error: ', error);
-            }
-        }
+  <p class="toggle-text">
+    <span id="toggleText">Don't have an account?</span>
+    <button id="toggleBtn" class="toggle-btn">Sign up</button>
+  </p>
+</div>
 
-        fetchMessage();
-        fetchUsers();
-    </script>
+<script>
+  const token = localStorage.getItem('jwtToken');
+
+  if (token) {
+    // Optionally: Validate token expiration here before redirecting
+    window.location.href = 'dashboard.html';
+  }
+
+  //const API_BASE = 'https://your-backend-url.com'; // Update this!
+  const API_BASE = '/api';
+
+  const formTitle = document.getElementById('formTitle');
+  const authForm = document.getElementById('authForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const toggleBtn = document.getElementById('toggleBtn');
+  const toggleText = document.getElementById('toggleText');
+  const usernameInput = document.getElementById('authUsername');
+  const passwordInput = document.getElementById('authPassword');
+
+  let isLogin = true;
+
+  function saveToken(token) {
+    localStorage.setItem('jwtToken', token);
+  }
+
+  function getToken() {
+    return localStorage.getItem('jwtToken');
+  }
+
+  toggleBtn.addEventListener('click', e => {
+    e.preventDefault();
+    isLogin = !isLogin;
+
+    if (isLogin) {
+      formTitle.textContent = 'Login';
+      submitBtn.textContent = 'Login';
+      toggleText.textContent = "Don't have an account?";
+      toggleBtn.textContent = 'Sign up';
+    } else {
+      formTitle.textContent = 'Signup';
+      submitBtn.textContent = 'Signup';
+      toggleText.textContent = 'Already have an account?';
+      toggleBtn.textContent = 'Login';
+    }
+
+    authForm.reset();
+  });
+
+  authForm.addEventListener('submit', async e => {
+    e.preventDefault();
+
+    const username = usernameInput.value.trim();
+    const password = passwordInput.value;
+
+    if (!username || !password) {
+      alert('Please fill in both fields.');
+      return;
+    }
+
+    const endpoint = isLogin ? 'login' : 'signup';
+
+    try {
+      const res = await fetch(`${API_BASE}/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password }),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => null);
+        throw new Error(errorData?.message || (isLogin ? 'Login failed' : 'Signup failed'));
+      }
+
+      const data = await res.json();
+      saveToken(data.token);
+      window.location.href = 'dashboard.html';
+    } catch (err) {
+      alert(err.message);
+    }
+  });
+</script>
+
 </body>
+</html>

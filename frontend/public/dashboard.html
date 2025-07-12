@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>User Dashboard</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h2 id="welcomeMessage">Loading...</h2>
+    <button id="logoutBtn">Logout</button>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('jwtToken');
+    if (!token) {
+      location.href = 'index.html';
+    }
+
+    fetch('/api/me', {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    .then(res => {
+      if (!res.ok) throw new Error("Unauthorized");
+      return res.json();
+    })
+    .then(data => {
+      document.getElementById('welcomeMessage').textContent = `Hello, ${data.username}`;
+    })
+    .catch(() => {
+      localStorage.removeItem('jwtToken');
+      location.href = 'index.html';
+    });
+
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.removeItem('jwtToken');
+      location.href = 'index.html';
+    });
+  </script>
+</body>
+</html>
