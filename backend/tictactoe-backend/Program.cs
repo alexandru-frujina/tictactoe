@@ -6,7 +6,10 @@ using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using System.IdentityModel.Tokens.Jwt;
 using System.Text;
+using Microsoft.AspNetCore.HttpOverrides;
 
+
+// TODO: Reset connected for all users when starting the application
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -35,12 +38,52 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = "tic-tac-toe-app",
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
     };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnMessageReceived = context =>
+        {
+            var accessToken = context.Request.Query["access_token"];
+
+            var path = context.HttpContext.Request.Path;
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/gamehub"))
+            {
+                // Read the token out of the query string
+                context.Token = accessToken;
+            }
+
+            return Task.CompletedTask;
+        }
+    };
 });
 
 builder.Services.AddAuthorization();
+builder.Services.AddSignalR(options =>
+{
+    options.EnableDetailedErrors = true;
+});
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+});
+
+
+
+builder.Logging.SetMinimumLevel(LogLevel.Debug);
+builder.Logging.AddConsole();
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
+app.UseWebSockets();
+app.UseRouting();
+
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.MapHub<GameHub>("/gamehub");
 
 // Automatically apply migrations, Useful for set-up fails early
 using (var scope = app.Services.CreateScope())
@@ -152,8 +195,5 @@ string GenerateJwtToken(User user)
 
     return new JwtSecurityTokenHandler().WriteToken(token);
 }
-
-app.UseAuthentication();
-app.UseAuthorization();
 
 app.Run();

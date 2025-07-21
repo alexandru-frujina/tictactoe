@@ -16,10 +16,13 @@
     <ul id="userList"></ul>
 
     <div id="selectedUser">Click on a name to select a user.</div>
+
+    <button id="connectBtn">Connect to GameHub</button>
   </div>
 
   <script>
     let userId = null
+    let opponentId = null;
     const token = localStorage.getItem('jwtToken');
     if (!token) {
       location.href = 'index.html';
@@ -70,16 +73,6 @@
       }
     });
 
-    const userListItems = document.querySelectorAll('#userList li');
-    const selectedUser = document.getElementById('selectedUser');
-
-    userListItems.forEach((item) => {
-      item.addEventListener('click', () => {
-        selectedUser.textContent = `You selected: ${item.textContent}`;
-      });
-    });
-
-
     async function loadUsers() {
       try {
         const response = await fetch('/api/connected-users', {
@@ -101,6 +94,7 @@
             li.dataset.userId = user.id;
 
             li.addEventListener('click', () => {
+              opponentId = users.find(u => u.username === user.username).id;
               document.getElementById('selectedUser').textContent =
                 `You selected: ${user.username}`;
             });
@@ -115,6 +109,70 @@
     }
 
     window.addEventListener('DOMContentLoaded', loadUsers);
+  </script>
+
+
+
+  <script src="https://cdn.jsdelivr.net/npm/@microsoft/signalr@latest/dist/browser/signalr.min.js"></script>
+  <script>
+    let connection;
+    let currentUserId;
+    let currentUserName;
+
+    async function initializeConnection() {
+      if (!token) {
+        console.warn("No JWT token available. Can't connect to SignalR.");
+        return;
+      }
+
+      currentUserId = userId;
+      currentUserName = opponentId;
+
+      connection = new signalR.HubConnectionBuilder()
+        .withUrl("/gamehub", {
+          accessTokenFactory: () => token
+        })
+        .withAutomaticReconnect()
+        .build();
+      
+      try {
+        await connection.start();
+        console.log("Connected to SignalR as", currentUserName);
+
+        connection.on("ReceiveGameInvite", (fromUser, gameId) => {
+          const accept = confirm(`${fromUser} invited you to a game. Accept?`);
+          if (accept) {
+            // TODO: replace!
+            //window.location.href = `/game/${gameId}`;
+            window.location.href = `game.html`;
+          }
+        });
+
+      } catch (err) {
+        console.error("Failed to start SignalR connection:", err);
+        alert("Failed to connect to GameHub.");
+      }
+    }
+
+    document.getElementById("connectBtn").addEventListener("click", async () => {
+      if (!connection || connection.state !== signalR.HubConnectionState.Connected) {
+        alert("Not connected to GameHub yet.");
+        return;
+      }
+
+      try {
+        // TODO: change gameId!
+        const gameId = "1";
+        await connection.invoke("SendGameInvite", opponentId.toString(), userId.toString(), gameId.toString());
+        console.log("Game invite sent.");
+      } catch (err) {
+        console.error("Error sending game invite:", err);
+        alert("Could not send game invite.");
+      }
+    });
+
+    initializeConnection();
+
   </script>
 </body>
 </html>
